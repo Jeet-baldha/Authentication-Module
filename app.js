@@ -4,7 +4,9 @@ import express from 'express';
 import ejs from 'ejs';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
-import encrypt from 'mongoose-encryption'
+
+import mdp from "md5";
+import md5 from "md5";
 
 const app = express();
 
@@ -19,10 +21,10 @@ const userShecma = new mongoose.Schema({
     password:String
 })
 
-userShecma.plugin(encrypt,{secret:process.env.SECRET})
+
 
 const user = mongoose.model('User', userShecma);
-console.log(process.env.SECRET)
+
 app.get('/', (req, res) => {
     res.render('home');
 })
@@ -40,7 +42,7 @@ app.get('/login', (req, res) => {
 app.post('/register', (req, res) => {
     const newUser = new user({
         email:req.body['username'],
-        password:req.body['password']
+        password:md5(req.body['password'])
     });
 
     newUser.save();
@@ -54,7 +56,7 @@ app.post('/login', async (req, res) => {
 
     var founndUser = await user.findOne({ email: username});
 
-    if(founndUser.password === password){
+    if(founndUser.password === md5(password)){
         res.render('secrets');
     }
     else{
