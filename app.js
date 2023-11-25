@@ -5,7 +5,7 @@ import ejs from 'ejs';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import session from "express-session";
-import passport from 'passport';
+import passport  from 'passport';
 import passportLocalMongoose from 'passport-local-mongoose';
 import findOrCreate from 'mongoose-findorcreate';
 import GoogleStrategy from 'passport-google-oauth20'
@@ -34,7 +34,8 @@ const userShecma = new mongoose.Schema({
     email:String,
     password:String,
     googleId:String,
-    facebookId:String
+    facebookId:String,
+    secret:String
 
 })
 
@@ -59,7 +60,6 @@ passport.use(new GoogleStrategy({
   function(accessToken, refreshToken, profile, cb) {
     
     user.findOrCreate({ googleId: profile.id }, function (err, user) {
-        console.log(profile);
         return cb(err, user);
     });
   }
@@ -72,7 +72,6 @@ passport.use(new FacebookStrategy({
   },
   function(accessToken, refreshToken, profile, cb) {
     user.findOrCreate({ facebookId: profile.id }, function (err, user) {
-        console.log(profile);
         return cb(err, user);
     });
   }
@@ -89,7 +88,6 @@ app.get('/auth/google',
 app.get('/auth/google/secrets', 
   passport.authenticate('google', { failureRedirect: '/login' }),
   function(req, res) {
-    // Successful authentication, redirect home.
     res.redirect('/secrets');
 });
 
@@ -113,16 +111,26 @@ app.get('/login', (req, res) => {
     res.render('login');
 });
 
-app.get('/secrets', (req, res) => {
+app.get('/secrets',async (req, res) => {
 
-    if(req.isAuthenticated()){
-        res.render('secrets');
-    }
-    else{
-        res.redirect('/login');
-    }
+   const usersSeretes = await user.find({secret:{$ne:null}});   
+   res.render('secrets',{
+    userSecret: usersSeretes
+   });
 
 })
+
+
+app.get('/submit', (req, res) => {
+    res.render('submit');
+});
+
+app.post('/submit',async (req,res) =>{S
+    let foundUser = await user.findById(req.user._id);
+    foundUser.secret = req.body.secret;
+    foundUser.save();
+    res.redirect('/secrets');
+});
 
 app.post('/register', (req, res) => {
 
@@ -153,7 +161,7 @@ app.post('/login',(req, res) => {
             res.redirect('/login');
         }else{
             passport.authenticate('local',{ failureRedirect: '/login' }) (req, res, () =>{
-                res.redirect('/secrets  ');
+                res.redirect('/secrets');
             })
         }
     })
